@@ -1,0 +1,49 @@
+# Tecnomax: testa e compila o hbbs/hbbr com o registro por WebSocket.
+# Roda só na branch tecnomax; o build.yaml do upstream continua só em tag.
+name: tecnomax-build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [tecnomax]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: tecnomax-${{ hashFiles('Cargo.lock') }}
+
+      - name: Testes
+        run: cargo test --release --lib
+
+      - name: Build
+        run: cargo build --release --bin hbbs --bin hbbr
+
+      - name: Artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: hbbs-hbbr-linux-amd64
+          path: |
+            target/release/hbbs
+            target/release/hbbr
+          if-no-files-found: error
